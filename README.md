@@ -145,6 +145,7 @@ as you work.
 | `/ticket-block WB-…`  | Block a ticket with a reason (and optional blocker).                |
 | `/ticket-review WB-…` | Submit an in_progress ticket for review (`in_review`).              |
 | `/ticket-changes WB-…`| Return an in_review ticket to in_progress (changes requested).      |
+| `/workboard-prefix TSK`| Set the prefix for new ticket ids (e.g. `TSK-0001`).              |
 | `/workboard-dashboard`| Launch the live, auto-refreshing dashboard in your browser.         |
 
 ## Tools (for the agent)

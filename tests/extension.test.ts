@@ -46,6 +46,7 @@ const EXPECTED_COMMANDS = [
   "ticket-review",
   "ticket-changes",
   "workboard-dashboard",
+  "workboard-prefix",
 ];
 
 function makeMockPi(): {
@@ -75,6 +76,7 @@ function ctxFor(env: TestEnv): WorkboardContext {
     lifecycle: env.lifecycle,
     selection: env.selection,
     sessionActive: env.sessionActive,
+    boardRepo: env.board,
   };
 }
 
@@ -346,5 +348,39 @@ describe("command behavior (wired to real services)", () => {
     expect(created.priority).toBe("high");
     expect(created.scope).toEqual(["scope item one", "scope item two"]);
     expect(created.acceptanceCriteria.map((a) => a.id)).toEqual(["AC-1"]);
+  });
+
+  it("/workboard-prefix sets a valid prefix and rejects invalid ones", async () => {
+    const { api, commands } = makeMockPi();
+    registerCommands(api, ctxFor(env));
+
+    const cmd = commands.find((c) => c.name === "workboard-prefix")!;
+
+    // Invalid prefix -> warning, prefix unchanged.
+    const badCtx = makeMockCtx([], undefined);
+    await cmd.handler("WAYTOOLONG", badCtx as unknown as ExtensionCommandContext);
+    expect(badCtx.notifications.join(" ")).toMatch(/1-4 letters or digits/i);
+    expect((await env.boardRepo.get()).idPrefix ?? "WB").toBe("WB");
+
+    // Valid prefix -> info, prefix persisted.
+    const okCtx = makeMockCtx([], undefined);
+    await cmd.handler("TSK", okCtx as unknown as ExtensionCommandContext);
+    expect(okCtx.notifications.join(" ")).toMatch(/prefix set to 'TSK'/i);
+    expect((await env.boardRepo.get()).idPrefix).toBe("TSK");
+
+    // New ticket now uses the new prefix.
+    const tools = buildAllTools(ctxFor(env));
+    const created = await exec(
+      tools.find((t) => t.name === "workboard_create")!,
+      {
+        status: "ready",
+        title: "Prefixed",
+        objective: "o",
+        background: "b",
+        scope: ["s"],
+        acceptanceCriteria: [{ id: "AC-1", description: "d" }],
+      },
+    );
+    expect(textOf(created)).toMatch(/TSK-0001/);
   });
 });

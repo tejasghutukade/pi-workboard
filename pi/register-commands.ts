@@ -1,7 +1,7 @@
 /**
- * Pi command registration (Milestone 4).
+ * Pi command registration.
  *
- * Six human-facing slash commands that wrap the services and render output via
+ * Human-facing slash commands that wrap the services and render output via
  * `ctx.ui.setWidget`. Lifecycle-mutating commands also refresh the persistent
  * status widget (active ticket, or ready/blocked counts).
  */
@@ -262,6 +262,42 @@ export function registerCommands(pi: ExtensionAPI, ctx: WorkboardContext): void 
         `Workboard dashboard opened at ${url} (server pid ${child.pid}, reading ${where}).`,
         "info",
       );
+    },
+  });
+
+  pi.registerCommand("workboard-prefix", {
+    description:
+      "Set the prefix for new ticket ids (e.g. 'WB' -> 'WB-0001'). Usage: /workboard-prefix TSK",
+    handler: async (args, c) => {
+      const prefix = args.trim();
+      if (!prefix) {
+        c.ui.notify("Usage: /workboard-prefix TSK  (1-4 letters or digits, e.g. WB, TSK, JIRA)", "warning");
+        return;
+      }
+      if (!ctx.boardRepo) {
+        c.ui.notify(
+          "Workboard error: board repository is not available in this context, so the prefix cannot be set.",
+          "error",
+        );
+        return;
+      }
+      if (!/^[A-Za-z0-9]{1,4}$/.test(prefix)) {
+        c.ui.notify(
+          `Workboard error: prefix must be 1-4 letters or digits (e.g. WB, TSK). Received: ${JSON.stringify(prefix)}`,
+          "error",
+        );
+        return;
+      }
+      try {
+        const meta = await ctx.boardRepo.get();
+        await ctx.boardRepo.update({ ...meta, idPrefix: prefix });
+        c.ui.notify(
+          `Ticket id prefix set to '${prefix}'. New tickets will be '${prefix}-####'. Existing tickets keep their original prefix.`,
+          "info",
+        );
+      } catch (err) {
+        c.ui.notify(friendly(err), "error");
+      }
     },
   });
 }
