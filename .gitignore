@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Pi workboard runtime data (tickets, board state)
+.pi/workboard/
+.pi/extensions/
+
+# Worktrees the agent creates per ticket
+.worktrees/
+
+# Logs / OS junk
+*.log
+.DS_Store
+.TextOS*
+.idea/
+.vscode/

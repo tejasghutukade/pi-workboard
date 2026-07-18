@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workboard — live</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --panel-2: #1c2230;
+        --border: #2a3140;
+        --text: #c9d1d9;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --green: #3fb950;
+        --red: #f85149;
+        --yellow: #d29922;
+        --purple: #bc8cff;
+        --grey: #6e7681;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        z-index: 5;
+      }
+      header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+      .counts { display: flex; gap: 10px; flex-wrap: wrap; }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pill b { color: var(--text); font-variant-numeric: tabular-nums; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; }
+      .active-pill { color: var(--accent); border-color: var(--accent); }
+      .live {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .live .dot { background: var(--green); animation: pulse 1.6s ease-in-out infinite; }
+      @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
+        padding: 18px 20px 60px;
+        align-items: start;
+      }
+      .column {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        min-height: 80px;
+      }
+      .column-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .column-head .n {
+        margin-left: auto;
+        color: var(--muted);
+        font-weight: 400;
+        font-variant-numeric: tabular-nums;
+      }
+      .column-head .sub {
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 11px;
+      }
+      .column-body { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+      .empty { color: var(--grey); font-size: 12px; padding: 4px 2px; font-style: italic; }
+
+      .card {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 11px;
+        border-left: 3px solid var(--grey);
+        cursor: pointer;
+        transition: border-color .12s ease, transform .12s ease;
+      }
+      .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+      .card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+      .card .top { display: flex; align-items: baseline; gap: 8px; }
+      .card .id { font-weight: 700; color: var(--accent); font-size: 12px; letter-spacing: .3px; }
+      .card .title { font-weight: 600; margin: 4px 0 6px; }
+      .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+      .badge {
+        font-size: 11px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .badge.prio-critical { color: var(--red); border-color: var(--red); }
+      .badge.prio-high { color: var(--yellow); border-color: var(--yellow); }
+      .badge.prio-medium { color: var(--accent); }
+      .badge.active-badge { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+      .meta { color: var(--muted); font-size: 11px; display: flex; gap: 12px; }
+      .ac-bar { height: 4px; border-radius: 3px; background: var(--border); margin-top: 8px; overflow: hidden; }
+      .ac-bar > span { display: block; height: 100%; background: var(--green); }
+      .obj { color: var(--muted); font-size: 12px; margin: 2px 0 0; }
+
+      /* Detail overlay */
+      .overlay {
+        position: fixed; inset: 0; z-index: 50;
+        background: rgba(0,0,0,.6);
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 40px 16px; overflow: auto;
+      }
+      .overlay.hidden { display: none; }
+      .modal {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        width: min(780px, 100%);
+        padding: 18px 20px 26px;
+      }
+      .modal-head { display: flex; align-items: flex-start; gap: 12px; }
+      .modal-head .x {
+        margin-left: auto; cursor: pointer; color: var(--muted);
+        background: transparent; border: 1px solid var(--border);
+        border-radius: 8px; width: 30px; height: 30px; font-size: 18px; line-height: 1;
+      }
+      .modal-head .x:hover { color: var(--text); border-color: var(--accent); }
+      .title-lg { font-size: 18px; font-weight: 700; margin: 6px 0 0; }
+      .meta { color: var(--muted); font-size: 12px; margin-top: 8px; }
+      .sec { margin-top: 18px; }
+      .sec h3 {
+        font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+        color: var(--muted); margin: 0 0 7px; border-bottom: 1px solid var(--border); padding-bottom: 4px;
+      }
+      .obj-lg { margin: 0; color: var(--text); white-space: pre-wrap; }
+      .list { margin: 0; padding-left: 18px; }
+      .list li { margin: 3px 0; }
+      .dep { color: var(--accent); cursor: pointer; border-bottom: 1px dotted var(--accent); }
+      .blocked {
+        margin-top: 12px; padding: 8px 10px; border-radius: 8px;
+        background: rgba(248,81,73,.12); border: 1px solid var(--red); color: #ffb4ae;
+      }
+      .ac-sum { color: var(--muted); font-size: 12px; margin-top: 4px; }
+      .ac-list { display: flex; flex-direction: column; gap: 5px; }
+      .ac-item { display: flex; gap: 8px; align-items: baseline; }
+      .check { color: var(--muted); width: 14px; }
+      .check.done { color: var(--green); }
+      .ac-id { color: var(--accent); font-weight: 600; font-size: 12px; }
+      .ac-desc { flex: 1; }
+      .ac-ev { color: var(--muted); font-size: 12px; font-style: italic; }
+      .prog { display: flex; flex-direction: column; gap: 6px; }
+      .prog-item { display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
+      .prog-time { color: var(--muted); font-size: 11px; white-space: nowrap; }
+      .prog-author { color: var(--accent); font-size: 12px; }
+      .prog-content { flex: 1; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Workboard</h1>
+      <div class="counts" id="counts"></div>
+      <div class="live"><span class="dot"></span><span id="live">connecting…</span></div>
+    </header>
+    <main id="board"></main>
+
+    <div id="detail" class="overlay hidden">
+      <div class="modal"></div>
+    </div>
+
+    <script>
+      const COLUMNS = [
+        { key: "in_progress", label: "In Progress", color: "var(--accent)" },
+        { key: "blocked", label: "Blocked", color: "var(--red)" },
+        { key: "ready", label: "Ready", color: "var(--green)" },
+        { key: "backlog", label: "Backlog", color: "var(--grey)" },
+        { key: "done", label: "Done", color: "var(--purple)" },
+        { key: "cancelled", label: "Cancelled", color: "var(--grey)" },
+      ];
+
+      let openTicketId = null;
+      let lastBoard = null;
+
+      function relTime(iso) {
+        if (!iso) return "";
+        const d = new Date(iso).getTime();
+        if (Number.isNaN(d)) return "";
+        const s = Math.max(0, Math.floor((Date.now() - d) / 1000));
+        if (s < 60) return s + "s ago";
+        if (s < 3600) return Math.floor(s / 60) + "m ago";
+        if (s < 86400) return Math.floor(s / 3600) + "h ago";
+        return Math.floor(s / 86400) + "d ago";
+      }
+
+      function esc(s) {
+        return String(s ?? "").replace(/[&<>"]/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
+        );
+      }
+
+      function str(s) {
+        return typeof s === "string" ? s : JSON.stringify(s);
+      }
+
+      function acInfo(t) {
+        const ac = Array.isArray(t.acceptanceCriteria) ? t.acceptanceCriteria : [];
+        const done = ac.filter((c) => c && c.completed).length;
+        return { total: ac.length, done };
+      }
+
+      function card(t) {
+        const { total, done } = acInfo(t);
+        const pct = total ? Math.round((done / total) * 100) : 0;
+        const isActive = t.status === "in_progress";
+        const prio = t.priority ? `prio-${t.priority}` : "";
+        const progress = Array.isArray(t.progress) ? t.progress.length : 0;
+        return `
+          <div class="card${isActive ? " active" : ""}" data-id="${esc(t.id)}" style="border-left-color:${
+          isActive ? "var(--accent)" : "var(--grey)"
+        }">
+            <div class="top">
+              <span class="id">${esc(t.id)}</span>
+              ${isActive ? '<span class="badge active-badge">ACTIVE</span>' : ""}
+            </div>
+            <div class="title">${esc(t.title)}</div>
+            <div class="badges">
+              ${t.priority ? `<span class="badge ${prio}">${esc(t.priority)}</span>` : ""}
+              ${total ? `<span class="badge">AC ${done}/${total}</span>` : ""}
+              ${progress ? `<span class="badge">updates ${progress}</span>` : ""}
+            </div>
+            ${t.objective ? `<p class="obj">${esc(t.objective)}</p>` : ""}
+            ${total ? `<div class="ac-bar"><span style="width:${pct}%"></span></div>` : ""}
+            <div class="meta"><span>${relTime(t.updatedAt)}</span></div>
+          </div>`;
+      }
+
+      function render(data) {
+        lastBoard = data;
+        const tickets = data.tickets || [];
+        const activeCount = tickets.filter((t) => t.status === "in_progress").length;
+
+        const byStatus = (k) => tickets.filter((t) => t.status === k).length;
+        const counts = document.getElementById("counts");
+        counts.innerHTML =
+          `<span class="pill">Active <b>${activeCount}</b></span>` +
+          COLUMNS.map(
+            (c) =>
+              `<span class="pill"><span class="dot" style="background:${c.color}"></span>${c.label} <b>${byStatus(
+                c.key
+              )}</b></span>`
+          ).join("");
+
+        const boardEl = document.getElementById("board");
+        boardEl.innerHTML = COLUMNS.map((c) => {
+          let items;
+          if (c.key === "done") {
+            // Prefer the server's pre-sorted, capped Done list. Fall back to
+            // deriving it from `tickets` so the page still works against an
+            // older dashboard server that doesn't send `done`.
+            const total = typeof data.doneTotal === "number" ? data.doneTotal : 0;
+            let visible = Array.isArray(data.done)
+              ? data.done
+              : tickets
+                  .filter((t) => t.status === "done")
+                  .sort((a, b) =>
+                    String(b.completedAt || b.updatedAt || "").localeCompare(
+                      String(a.completedAt || a.updatedAt || "")
+                    )
+                  );
+            const head = total || visible.length
+              ? `${c.label} <span class="sub">(showing ${visible.length} of ${total || visible.length})</span>`
+              : c.label;
+            const body = visible.length
+              ? visible.map((t) => card(t)).join("")
+              : '<div class="empty">—</div>';
+            return `
+            <section class="column">
+              <div class="column-head">
+                <span class="dot" style="background:${c.color}"></span>${head}
+                <span class="n">${visible.length}</span>
+              </div>
+              <div class="column-body">${body}</div>
+            </section>`;
+          }
+          items = tickets.filter((t) => t.status === c.key);
+          const body = items.length
+            ? items.map((t) => card(t)).join("")
+            : '<div class="empty">—</div>';
+          return `
+            <section class="column">
+              <div class="column-head">
+                <span class="dot" style="background:${c.color}"></span>${c.label}
+                <span class="n">${items.length}</span>
+              </div>
+              <div class="column-body">${body}</div>
+            </section>`;
+        }).join("");
+      }
+
+      function section(title, body) {
+        return body ? `<div class="sec"><h3>${esc(title)}</h3>${body}</div>` : "";
+      }
+
+      function listHtml(arr, render) {
+        return Array.isArray(arr) && arr.length
+          ? `<ul class="list">${arr.map(render).join("")}</ul>`
+          : "";
+      }
+
+      function renderDetail(t) {
+        const { total, done } = acInfo(t);
+        const pct = total ? Math.round((done / total) * 100) : 0;
+        const isActive = t.status === "in_progress";
+        const statusColor = (COLUMNS.find((c) => c.key === t.status) || {}).color || "var(--grey)";
+
+        const badges = [
+          `<span class="badge" style="border-color:${statusColor};color:${statusColor}">${esc(t.status)}</span>`,
+          t.priority ? `<span class="badge prio-${t.priority}">${esc(t.priority)}</span>` : "",
+          isActive ? `<span class="badge active-badge">ACTIVE</span>` : "",
+        ].join("");
+
+        const meta = [
+          t.createdAt ? `Created ${relTime(t.createdAt)}` : "",
+          t.startedAt ? `Started ${relTime(t.startedAt)}` : "",
+          t.completedAt ? `Completed ${relTime(t.completedAt)}` : "",
+          `Updated ${relTime(t.updatedAt)}`,
+        ].filter(Boolean).join(" · ");
+
+        const acHtml = total
+          ? `<div class="ac-list">${t.acceptanceCriteria
+              .map(
+                (c) => `
+              <div class="ac-item">
+                <span class="check ${c.completed ? "done" : ""}">${c.completed ? "✓" : "○"}</span>
+                <span class="ac-id">${esc(c.id)}</span>
+                <span class="ac-desc">${esc(c.description)}</span>
+                ${c.evidence ? `<span class="ac-ev">— ${esc(c.evidence)}</span>` : ""}
+              </div>`
+              )
+              .join("")}</div>`
+          : "";
+
+        const depsHtml = listHtml(
+          t.dependencies,
+          (d) => `<li><span class="dep" data-dep="${esc(d.ticketId)}">${esc(d.type)} ${esc(d.ticketId)}</span></li>`
+        );
+
+        const progHtml = Array.isArray(t.progress) && t.progress.length
+          ? `<div class="prog">${[...t.progress]
+              .reverse()
+              .map(
+                (p) => `
+              <div class="prog-item">
+                <span class="badge">${esc(p.type)}</span>
+                ${p.author ? `<span class="prog-author">by ${esc(p.author)}</span>` : ""}
+                <span class="prog-time">${relTime(p.timestamp)}</span>
+                <span class="prog-content">${esc(p.content)}</span>
+              </div>`
+              )
+              .join("")}</div>`
+          : "";
+
+        const body = `
+          <div class="modal-head">
+            <div>
+              <div class="top"><span class="id">${esc(t.id)}</span> ${badges}</div>
+              <div class="title-lg">${esc(t.title)}</div>
+            </div>
+            <button class="x" onclick="closeTicket()">×</button>
+          </div>
+          <div class="meta">${meta}</div>
+          ${total ? `<div class="ac-bar"><span style="width:${pct}%"></span></div><div class="ac-sum">${done}/${total} acceptance criteria met</div>` : ""}
+          ${t.blockedReason ? `<div class="blocked">⛔ Blocked: ${esc(t.blockedReason)}</div>` : ""}
+          ${t.worktree ? `<div class="sec"><h3>Worktree</h3><p class="obj-lg">${esc(t.worktree)}</p></div>` : ""}
+          ${section("Objective", t.objective ? `<p class="obj-lg">${esc(t.objective)}</p>` : "")}
+          ${section("Prerequisites", listHtml(t.prerequisites, (s) => `<li>${esc(str(s))}</li>`))}
+          ${section("Background", t.background ? `<p class="obj-lg">${esc(t.background)}</p>` : "")}
+          ${section("Acceptance Criteria", acHtml)}
+          ${section("Scope", listHtml(t.scope, (s) => `<li>${esc(str(s))}</li>`))}
+          ${section("Out of Scope", listHtml(t.outOfScope, (s) => `<li>${esc(str(s))}</li>`))}
+          ${section("Dependencies", depsHtml)}
+          ${section("Constraints", listHtml(t.constraints, (s) => `<li>${esc(str(s))}</li>`))}
+          ${section("Decisions", listHtml(t.decisions, (s) => `<li>${esc(str(s))}</li>`))}
+          ${section("References", listHtml(t.references, (s) => `<li>${esc(str(s))}</li>`))}
+          ${section("Affected Areas", listHtml(t.affectedAreas, (s) => `<li>${esc(str(s))}</li>`))}
+          ${section("Implementation Notes", listHtml(t.implementationNotes, (s) => `<li>${esc(str(s))}</li>`))}
+          ${t.verificationSummary ? section("Verification Summary", `<p class="obj-lg">${esc(t.verificationSummary)}</p>`) : ""}
+          ${section("Progress Log", progHtml)}
+        `;
+        document.querySelector("#detail .modal").innerHTML = body;
+      }
+
+      async function refreshOpen() {
+        if (!openTicketId) return;
+        // Prefer the already-loaded board data (the list returns full tickets),
+        // so the detail view works even on a server without /api/ticket.
+        let t = (lastBoard?.tickets || []).find((x) => x.id === openTicketId) || null;
+        if (!t) {
+          // Ticket appeared after the last poll — fall back to the endpoint.
+          try {
+            const res = await fetch("/api/ticket/" + encodeURIComponent(openTicketId), { cache: "no-store" });
+            if (!res.ok) { closeTicket(); return; }
+            t = await res.json();
+          } catch {
+            closeTicket();
+            return;
+          }
+        }
+        renderDetail(t);
+      }
+
+      async function openTicket(id) {
+        openTicketId = id;
+        document.getElementById("detail").classList.remove("hidden");
+        await refreshOpen();
+      }
+
+      function closeTicket() {
+        openTicketId = null;
+        document.getElementById("detail").classList.add("hidden");
+      }
+
+      document.getElementById("board").addEventListener("click", (e) => {
+        const el = e.target.closest(".card");
+        if (el && el.dataset.id) openTicket(el.dataset.id);
+      });
+      document.getElementById("detail").addEventListener("click", (e) => {
+        const dep = e.target.closest("[data-dep]");
+        if (dep) openTicket(dep.dataset.dep);
+        else if (e.target === e.currentTarget) closeTicket();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeTicket();
+      });
+
+      async function poll() {
+        try {
+          const res = await fetch("/api/board", { cache: "no-store" });
+          const data = await res.json();
+          render(data);
+          document.getElementById("live").textContent = "live · updated " + new Date().toLocaleTimeString();
+          if (openTicketId) await refreshOpen();
+        } catch (e) {
+          document.getElementById("live").textContent = "offline · " + e.message;
+        }
+      }
+
+      poll();
+      setInterval(poll, 2000);
+    </script>
+  </body>
+</html>
