@@ -28,6 +28,7 @@ const EXPECTED_TOOLS = [
   "workboard_acceptance",
   "workboard_block",
   "workboard_unblock",
+  "workboard_cancel",
   "workboard_review",
   "workboard_changes",
   "workboard_complete",
@@ -43,6 +44,7 @@ const EXPECTED_COMMANDS = [
   "ticket-start",
   "ticket-work",
   "ticket-block",
+  "ticket-cancel",
   "ticket-review",
   "ticket-changes",
   "workboard-dashboard",
@@ -382,5 +384,29 @@ describe("command behavior (wired to real services)", () => {
       },
     );
     expect(textOf(created)).toMatch(/TSK-0001/);
+  });
+
+  it("/ticket-cancel cancels a ready ticket and rejects a done one", async () => {
+    const { api, commands } = makeMockPi();
+    registerCommands(api, ctxFor(env));
+    const cmd = commands.find((c) => c.name === "ticket-cancel")!;
+
+    // Seed a ready ticket via the create tool.
+    const tools = buildAllTools(ctxFor(env));
+    const id = await exec(
+      tools.find((t) => t.name === "workboard_create")!,
+      { status: "ready", title: "To cancel", objective: "o", background: "b", scope: ["s"], acceptanceCriteria: [{ id: "AC-1", description: "d" }] },
+    ).then((r) => r.details as { id: string }).then((d) => d.id);
+
+    // Cancel it (no reason supplied).
+    const okCtx = makeMockCtx([], undefined);
+    await cmd.handler(id, okCtx as unknown as ExtensionCommandContext);
+    expect(okCtx.notifications.join(" ")).toMatch(/cancelled/i);
+    expect((await env.ticketService.get(id)).status).toBe("cancelled");
+
+    // Cancelling again is rejected (terminal state).
+    const againCtx = makeMockCtx([], undefined);
+    await cmd.handler(id, againCtx as unknown as ExtensionCommandContext);
+    expect(againCtx.notifications.join(" ")).toMatch(/Workboard error/i);
   });
 });

@@ -444,6 +444,35 @@ export function buildAllTools(ctx: WorkboardContext): ToolDefinition[] {
       },
     }),
 
+    // workboard_cancel -------------------------------------------------------
+    defineTool({
+      name: "workboard_cancel",
+      label: "Cancel ticket",
+      description:
+        "Cancel a backlog, ready, or blocked ticket. Terminal — cannot cancel a done or already-cancelled ticket.",
+      promptSnippet: "workboard_cancel: cancel a ticket",
+      promptGuidelines: [
+        "Cancel only backlog/ready/blocked tickets; never cancel one that is done.",
+      ],
+      parameters: Type.Object({
+        id: Type.String(),
+        reason: Type.Optional(
+          Type.String({ description: "Why the ticket is being cancelled (recorded as a note)." }),
+        ),
+      }),
+      async execute(_id, p) {
+        try {
+          const t = await ctx.lifecycle.cancel(p.id);
+          if (p.reason) {
+            await ctx.ticketService.recordProgress(p.id, "note", `Cancelled: ${p.reason}`, "system");
+          }
+          return ok(`${t.id} cancelled.`, t);
+        } catch (err) {
+          return fail(err);
+        }
+      },
+    }),
+
     // workboard_complete -----------------------------------------------------
     defineTool({
       name: "workboard_complete",

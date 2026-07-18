@@ -151,6 +151,7 @@ tell apart. Pass a port with `/workboard-dashboard 9000` if needed.
 | `/ticket-start WB-…`  | Start a ready ticket and make it active.                            |
 | `/ticket-work WB-…`   | Have the agent work the ticket in a fresh git worktree.             |
 | `/ticket-block WB-…`  | Block a ticket with a reason (and optional blocker).                |
+| `/ticket-cancel WB-…` | Cancel a backlog/ready/blocked ticket (terminal).                  |
 | `/ticket-review WB-…` | Submit an in_progress ticket for review (`in_review`).              |
 | `/ticket-changes WB-…`| Return an in_review ticket to in_progress (changes requested).      |
 | `/workboard-prefix TSK`| Set the prefix for new ticket ids (e.g. `TSK-0001`).              |
@@ -163,7 +164,7 @@ The extension also registers `workboard_*` tools the agent calls directly:
 `workboard_create`, `workboard_get`, `workboard_list`, `workboard_next`,
 `workboard_start`, `workboard_set_worktree`, `workboard_update`,
 `workboard_progress`, `workboard_acceptance`, `workboard_block`,
-`workboard_unblock`, `workboard_complete`, `workboard_review`,
+`workboard_unblock`, `workboard_cancel`, `workboard_complete`, `workboard_review`,
 `workboard_changes`, `workboard_ready`, and `workboard_set_prefix`.
 
 ---

@@ -188,6 +188,28 @@ export function registerCommands(pi: ExtensionAPI, ctx: WorkboardContext): void 
     },
   });
 
+  pi.registerCommand("ticket-cancel", {
+    description: "Cancel a backlog/ready/blocked ticket. Usage: /ticket-cancel WB-0001",
+    handler: async (args, c) => {
+      const id = args.trim();
+      if (!id) {
+        c.ui.notify("Usage: /ticket-cancel WB-0001", "warning");
+        return;
+      }
+      const reason = (await c.ui.input("Cancellation reason (optional)"))?.trim();
+      try {
+        const t = await ctx.lifecycle.cancel(id);
+        if (reason) {
+          await ctx.ticketService.recordProgress(id, "note", `Cancelled: ${reason}`, "system");
+        }
+        c.ui.notify(`${t.id} cancelled.`, "info");
+        await updateStatusWidget(c, ctx);
+      } catch (err) {
+        c.ui.notify(friendly(err), "error");
+      }
+    },
+  });
+
   pi.registerCommand("ticket-review", {
     description:
       "Submit an in_progress ticket for review (move to in_review). Usage: /ticket-review WB-0001",
