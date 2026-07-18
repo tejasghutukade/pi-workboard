@@ -48,50 +48,56 @@ doing or why.
 - [Node.js](https://nodejs.org/) 22+
 - [Pi](https://github.com/earendil-works/pi-coding-agent) installed and on your `PATH`
 
-### 1. Install the package
+> This is a **pi package**, not an npm package — `npm install pi-workboard` will
+> not work (it is not published to npm). Install it with Pi's package manager.
 
-From the project you want to track work in:
+### 1. Install the extension
 
-```bash
-npm install pi-workboard
-```
-
-Or clone it directly:
+From anywhere (Pi resolves the git source and runs `npm install` for you):
 
 ```bash
-git clone https://github.com/tejasghutukade/pi-workboard.git
-cd pi-workboard
-npm install
+pi install git:github.com/tejasghutukade/pi-workboard
 ```
 
-### 2. Register the extension with Pi
+Other supported sources:
 
-Add `pi-workboard` to your Pi `extensions` config (usually in
-`pi.config.json` or your project's `.pi/` settings). For example:
-
-```json
-{
-  "extensions": ["pi-workboard"]
-}
+```bash
+pi install https://github.com/tejasghutukade/pi-workboard   # raw URL
+pi install ./path/to/pi-workboard                          # local clone
+pi install -l git:github.com/tejasghutukade/pi-workboard   # project-scoped (.pi/settings.json)
 ```
 
-If you installed it from git instead of npm, point Pi at the local folder:
+By default this writes to your user settings (`~/.pi/agent/settings.json`); use
+`-l` to scope it to the current project so the team shares it via `.pi/settings.json`.
 
-```json
-{
-  "extensions": ["./pi-workboard"]
-}
+### 2. (Alternative) Clone into the auto-discovery directory
+
+If you prefer not to use `pi install`, clone the repo into a Pi auto-discovery
+location. Extensions placed there are loaded automatically and can be
+hot-reloaded with `/reload`:
+
+```bash
+# Global (all projects)
+git clone https://github.com/tejasghutukade/pi-workboard.git ~/.pi/agent/extensions/pi-workboard
+
+# Or project-local
+mkdir -p .pi/extensions
+git clone https://github.com/tejasghutukade/pi-workboard.git .pi/extensions/pi-workboard
+cd .pi/extensions/pi-workboard && npm install
 ```
 
 ### 3. Verify it loaded
 
-Start Pi in your project and run:
+Start (or restart) Pi in your project and run:
 
 ```
 /board
 ```
 
 You should see an (empty) workboard. That's it — you're ready to track work.
+
+> If you installed via `pi install`, no further config is needed — the `pi` key
+> in `package.json` (`"extensions": ["./index.ts"]`) tells Pi what to load.
 
 ---
 
