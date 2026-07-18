@@ -128,7 +128,9 @@ Open the live dashboard:
 ```
 
 A browser tab opens at `http://localhost:8777` showing tickets that auto-refresh
-as you work.
+as you work. The dashboard header shows the **project name** (derived from the
+project folder containing `.pi/workboard`), so multiple dashboards are easy to
+tell apart. Pass a port with `/workboard-dashboard 9000` if needed.
 
 ---
 

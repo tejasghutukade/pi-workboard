@@ -28,6 +28,28 @@ const WORKBOARD_DIR =
   process.argv[2] ||
   path.join(process.cwd(), ".pi", "workboard");
 
+/**
+ * Derive a human-readable project name from the workboard directory.
+ * The workboard lives at <project>/.pi/workboard, so the project folder is
+ * two levels up. Fall back to the workboard dir's own parent if the layout
+ * differs.
+ */
+function projectName() {
+  try {
+    const normalized = path.resolve(WORKBOARD_DIR);
+    const parent = path.dirname(normalized); // <project>/.pi
+    const grandparent = path.dirname(parent); // <project>
+    if (path.basename(parent).toLowerCase() === ".pi" && grandparent !== parent) {
+      return path.basename(grandparent);
+    }
+    return path.basename(parent);
+  } catch {
+    return "Workboard";
+  }
+}
+
+const PROJECT_NAME = projectName();
+
 const PORT = Number(process.env.PORT) || 8777;
 
 /** How many Done tickets the dashboard shows. Newest completed first. */
@@ -83,7 +105,7 @@ const server = http.createServer(async (req, res) => {
         "Content-Type": "application/json",
         "Cache-Control": "no-store",
       });
-      res.end(JSON.stringify(data));
+      res.end(JSON.stringify({ project: PROJECT_NAME, ...data }));
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: String(err) }));
@@ -122,6 +144,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Workboard live dashboard: http://localhost:${PORT}`);
+  console.log(`Workboard live dashboard (${PROJECT_NAME}): http://localhost:${PORT}`);
   console.log(`Reading tickets from: ${WORKBOARD_DIR}`);
 });

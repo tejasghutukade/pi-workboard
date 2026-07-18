@@ -185,7 +185,7 @@
   </head>
   <body>
     <header>
-      <h1>Workboard</h1>
+      <h1 id="project-name">Workboard</h1>
       <div class="counts" id="counts"></div>
       <div class="live"><span class="dot"></span><span id="live">connecting…</span></div>
     </header>
@@ -264,6 +264,10 @@
       function render(data) {
         lastBoard = data;
         const tickets = data.tickets || [];
+        const project = data.project || "Workboard";
+        const nameEl = document.getElementById("project-name");
+        if (nameEl) nameEl.textContent = project;
+        document.title = project + " — Workboard";
         const activeCount = tickets.filter((t) => t.status === "in_progress").length;
 
         const byStatus = (k) => tickets.filter((t) => t.status === k).length;
