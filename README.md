@@ -146,7 +146,8 @@ as you work.
 | `/ticket-review WB-…` | Submit an in_progress ticket for review (`in_review`).              |
 | `/ticket-changes WB-…`| Return an in_review ticket to in_progress (changes requested).      |
 | `/workboard-prefix TSK`| Set the prefix for new ticket ids (e.g. `TSK-0001`).              |
-| `/workboard-dashboard`| Launch the live, auto-refreshing dashboard in your browser.         |
+| `/workboard-dashboard`| Launch the live, auto-refreshing dashboard in your browser.        |
+| `/workboard-dashboard 9000`| Same, but on port 9000 (overrides `WORKBOARD_PORT`).          |
 
 ## Tools (for the agent)
 

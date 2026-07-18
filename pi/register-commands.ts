@@ -227,13 +227,18 @@ export function registerCommands(pi: ExtensionAPI, ctx: WorkboardContext): void 
   });
 
   pi.registerCommand("workboard-dashboard", {
-    description: "Launch the live, auto-refreshing workboard dashboard in your browser.",
-    handler: async (_args, c) => {
+    description: "Launch the live, auto-refreshing workboard dashboard in your browser. Optional port: /workboard-dashboard 9000",
+    handler: async (args, c) => {
       const serverPath = fileURLToPath(new URL("../dashboard/server.mjs", import.meta.url));
       const workboardDir = path.join(c.cwd, ".pi", "workboard");
       // Fixed port so re-running this command restarts the same server instead
-      // of spawning a new one each time.
-      const port = Number(process.env.WORKBOARD_PORT) || 8777;
+      // of spawning a new one each time. An explicit /workboard-dashboard <port>
+      // argument wins over WORKBOARD_PORT, which wins over the 8777 default.
+      const argPort = Number(args.trim());
+      const port =
+        Number.isInteger(argPort) && argPort > 0 && argPort <= 65535
+          ? argPort
+          : Number(process.env.WORKBOARD_PORT) || 8777;
       const url = `http://localhost:${port}/`;
 
       // Restart cleanly: stop any dashboard already listening on this port
